@@ -4,6 +4,8 @@
 --
 -- This query pivots the vital signs for the first 24 hours of a patient's stay
 -- Vital signs include heart rate, blood pressure, respiration rate, and temperature
+-- Define which schema to work on
+SET search_path TO mimiciii;
 
 DROP MATERIALIZED VIEW IF EXISTS vitalsfirstday CASCADE;
 create materialized view vitalsfirstday as
@@ -55,6 +57,22 @@ SELECT pvt.subject_id, pvt.hadm_id, pvt.icustay_id
 , min(case when VitalID = 11 then valuenum else null end) as EF_Min
 , max(case when VitalID = 11 then valuenum else null end) as EF_Max
 , avg(case when VitalID = 11 then valuenum else null end) as EF_Mean
+, min(case when VitalID = 12 then valuenum else null end) as SvO2_Min
+, max(case when VitalID = 12 then valuenum else null end) as SvO2_Max
+, avg(case when VitalID = 12 then valuenum else null end) as SvO2_Mean
+, max(case when VitalID = 13 then valuenum else null end) as Troponin_Max
+, min(case when VitalID = 14 then valuenum else null end) as SVV_Min
+, max(case when VitalID = 14 then valuenum else null end) as SVV_Max
+, avg(case when VitalID = 14 then valuenum else null end) as SVV_Mean
+, min(case when VitalID = 15 then valuenum else null end) as SV_Min
+, max(case when VitalID = 15 then valuenum else null end) as SV_Max
+, avg(case when VitalID = 15 then valuenum else null end) as SV_Mean
+, min(case when VitalID = 16 then valuenum else null end) as SVI_Min
+, max(case when VitalID = 16 then valuenum else null end) as SVI_Max
+, avg(case when VitalID = 16 then valuenum else null end) as SVI_Mean
+, min(case when VitalID = 17 then valuenum else null end) as SVRI_Min
+, max(case when VitalID = 17 then valuenum else null end) as SVRI_Max
+, avg(case when VitalID = 17 then valuenum else null end) as SVRI_Mean
 
 FROM  (
   select ie.subject_id, ie.hadm_id, ie.icustay_id
@@ -68,13 +86,20 @@ FROM  (
     --when itemid in (223762,676) and valuenum > 10 and valuenum < 50  then 6 -- TempC
     --when itemid in (646,220277) and valuenum > 0 and valuenum <= 100 then 7 -- SpO2
     -- when itemid in (807,811,1529,3745,3744,225664,220621,226537) and valuenum > 0 then 8 -- Glucose
-    when itemid in (7610) and valuenum > 0 and valuenum < 15 then 5 -- CI
-    when itemid in (40909, 41440) and valuenum > 0 and valuenum < 20 then 6 -- CO
+    when itemid in (7610, 228177) and valuenum > 0 and valuenum < 15 then 5 -- CI
+    when itemid in (40909, 41440, 220088) and valuenum > 0 and valuenum < 20 then 6 -- CO
     when itemid in (220074) and valuenum > 0 and valuenum < 30 then 7 -- CVP
     when itemid in (220059) and valuenum > 0 and valuenum < 120 then 8 -- PAP S
     when itemid in (220060) and valuenum > 0 and valuenum < 80 then 9 -- PAP D
     when itemid in (220061) and valuenum > 0 and valuenum < 100 then 10 -- PAP M
     when itemid in (226272) and valuenum > 0 and valuenum < 100 then 11 -- EF
+
+    when itemid in (838) and valuenum > 0 and valuenum < 100 then 12 -- SvO2
+    when itemid in (851) and valuenum > 0 and valuenum < 100000 then 13 -- Troponin
+    when itemid in (227546) and valuenum > 0 and valuenum < 100 then 14 -- SVV (Arterial)
+    when itemid in (227547) and valuenum > 10 and valuenum < 150 then 15 -- SV (Arterial)
+    when itemid in (228182) and valuenum > 0 and valuenum < 150 then 16 -- SVI (PiCCO)
+    when itemid in (228185) and valuenum > 100 and valuenum < 3000 then 17 -- SVRI (PiCCO)
 
 
     else null end as VitalID
@@ -134,7 +159,17 @@ FROM  (
   220061, --Pulmonary Artery Pressure mean
 
   -- EF
-  226272 --EF (CCO)
+  226272, --EF (CCO)
+
+  -- more
+  838, --SvO2		carevue	chartevents	Mixed Venous Gases
+  851, --	Troponin		carevue	chartevents	Enzymes
+  220088, --	Cardiac Output (thermodilution)	CO (thermodilution)	metavision	chartevents	Hemodynamics	L/min	Numeric
+  227546, --	SVV (Arterial)	SVV (Arterial)	metavision	chartevents	Hemodynamics	%	Numeric
+  227547, --	SV (Arterial)	SV (Arterial)	metavision	chartevents	Hemodynamics	mL/beat	Numeric
+  228177, --	CI (PiCCO)	CI (PiCCO)	metavision	chartevents	PiCCO	L/min/m2	Numeric
+  228182, --	SVI (PiCCO)	SVI (PiCCO)	metavision	chartevents	PiCCO	mL/m2	Numeric
+  228185 --	SVRI (PiCCO)	SVRI (PiCCO)	metavision	chartevents	PiCCO	dynes.sec.cm-5/m2	Numeric
 
 
   -- RESPIRATORY RATE
